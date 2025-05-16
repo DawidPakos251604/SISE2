@@ -43,18 +43,23 @@ class MLP(nn.Module):
 
 # Ładowanie danych
 
-def load_data(data_dir):
+def load_data(data_dirs):
+    if isinstance(data_dirs, str):
+        data_dirs = [data_dirs]
+
     data = []
-    for file in glob.glob(os.path.join(data_dir, "*.csv")):
-        df = pd.read_csv(file, header=None)
-        data.append(df)
+    for data_dir in data_dirs:
+        for file in glob.glob(os.path.join(data_dir, "*.csv")):
+            df = pd.read_csv(file, header=None)
+            data.append(df)
     full_data = pd.concat(data, ignore_index=True)
     return full_data
 
 
-def prepare_datasets(train_path, test_path, normalization="minmax"):
-    train_data = load_data(train_path)
-    test_data = load_data(test_path)
+
+def prepare_datasets(train_paths, test_paths, normalization="minmax"):
+    train_data = load_data(train_paths)
+    test_data = load_data(test_paths)
 
     X_train = train_data.iloc[:, [0, 1]].values
     y_train = train_data.iloc[:, [2, 3]].values
@@ -122,10 +127,12 @@ def train_model(activation_name, X_train, y_train, X_test, y_test):
 
 # Główna pętla
 if __name__ == "__main__":
-    train_dir = "dane/f8/stat"
-    test_dir = "dane/f8/dyn"
+    train_dirs = ["dane/f8/stat", "dane/f10/stat"]
+    test_dirs = ["dane/f8/dyn", "dane/f10/dyn"]
 
-    X_train, y_train, X_test, y_test_scaled, y_test_true, y_test_measured, scaler_y = prepare_datasets(train_dir, test_dir, NORMALIZATION)
+    X_train, y_train, X_test, y_test_scaled, y_test_true, y_test_measured, scaler_y = prepare_datasets(
+        train_dirs, test_dirs, NORMALIZATION
+    )
 
     train_errors_dict = {}
     test_errors_dict = {}
@@ -151,7 +158,7 @@ if __name__ == "__main__":
             best_output = predictions_denorm
 
     # Wykresy
-    plot_mse(train_errors_dict, test_errors_dict)
+    plot_mse(train_errors_dict, test_errors_dict, y_test_scaled, y_test_measured, scaler_y)
     raw_error = np.linalg.norm(y_test_measured - y_test_true, axis=1)
     plot_cdf(prediction_errors, raw_error)
     scatter_plot(y_test_true, y_test_measured, best_output)
