@@ -1,35 +1,14 @@
 import os
 import glob
-import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, MaxAbsScaler
-from sklearn.metrics import mean_squared_error
 
+from model import MLP, ACTIVATIONS
 from plotting_utils import plot_mse, plot_cdf, scatter_plot
-
-# Funkcje aktywacji
-ACTIVATIONS = {
-    "relu": nn.ReLU(),
-    "sigmoid": nn.Sigmoid(),
-    "tanh": nn.Tanh()
-}
-
-# Model
-class MLP(nn.Module):
-    def __init__(self, hidden_size, activation_fn):
-        super(MLP, self).__init__()
-        self.model = nn.Sequential(
-            nn.Linear(2, hidden_size),
-            activation_fn,
-            nn.Linear(hidden_size, 2)
-        )
-
-    def forward(self, x):
-        return self.model(x)
 
 # Ładowanie danych
 def load_data(data_dir):
@@ -41,9 +20,13 @@ def load_data(data_dir):
     return full_data
 
 # Przygotowanie danych
-def prepare_datasets(train_path, test_path, normalization="minmax"):
-    train_data = load_data(train_path)
-    test_data = load_data(test_path)
+def prepare_datasets(train_paths, test_paths, normalization="minmax"):
+    def load_multiple(paths):
+        dfs = [load_data(p) for p in paths]
+        return pd.concat(dfs, ignore_index=True)
+
+    train_data = load_multiple(train_paths)
+    test_data = load_multiple(test_paths)
 
     X_train = train_data.iloc[:, [0, 1]].values
     y_train = train_data.iloc[:, [2, 3]].values
@@ -162,11 +145,11 @@ def main():
     print("\n=== Rozpoczynam trening (3 egzemplarze sieci) ===")
 
     # Dane
-    train_dir = "dane/f8/stat"
-    test_dir = "dane/f8/dyn"
+    train_dirs = ["dane/f8/stat", "dane/f10/stat"]
+    test_dirs = ["dane/f8/dyn", "dane/f10/dyn"]
 
     X_train, y_train, X_test, y_test_scaled, y_test_true, y_test_measured, scaler_y = prepare_datasets(
-        train_dir, test_dir, normalization
+        train_dirs, test_dirs, normalization
     )
 
     best_model = None
