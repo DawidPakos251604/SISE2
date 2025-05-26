@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, MaxAbsScaler
+from sklearn.preprocessing import StandardScaler
 from datetime import datetime
 
 from model import MLP, ACTIVATIONS
@@ -171,7 +171,6 @@ def main():
         df_pred["error"] = error
         df_pred.to_csv(f"wyniki/predictions_{key}.csv", index=False)
 
-        # Dodatkowe opcjonalne logi
         print(f"Zapisano: wyniki/errors_{key}.csv oraz wyniki/predictions_{key}.csv")
 
 if __name__ == "__main__":
