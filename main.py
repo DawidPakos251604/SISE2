@@ -189,5 +189,8 @@ def main():
         # Dodatkowe opcjonalne logi
         print(f"Zapisano: wyniki/errors_{key}.csv oraz wyniki/predictions_{key}.csv")
 
+
+#błąd dla egzemplarza i porównać
+
 if __name__ == "__main__":
     main()

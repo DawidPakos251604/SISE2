@@ -7,15 +7,6 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, MaxAbsScaler
 
 
-def get_common_ylim(train_error_files, test_error_files):
-    min_val = float('inf')
-    max_val = float('-inf')
-    for f in train_error_files + test_error_files:
-        df = pd.read_csv(f)
-        min_val = min(min_val, df[['train_error', 'test_error']].min().min())
-        max_val = max(max_val, df[['train_error', 'test_error']].max().max())
-    return min_val, max_val
-
 
 def plot_mse_errors(train_error_files, test_error_files):
     plt.figure(figsize=(10, 6))
@@ -23,8 +14,8 @@ def plot_mse_errors(train_error_files, test_error_files):
         df = pd.read_csv(file)
         label = os.path.basename(file).replace("errors_", "").replace(".csv", "")
         plt.plot(df["epoch"], df["train_error"], label=label)
-    _, max_val = get_common_ylim(train_error_files, test_error_files)
-    plt.ylim(max_val * 0.5, max_val)  # Obcięcie górnych wartości
+    #_, max_val = get_common_ylim(train_error_files, test_error_files)
+    #plt.ylim(max_val * 0.5, max_val)  # Obcięcie górnych wartości
     plt.xlabel("Epoka")
     plt.ylabel("Błąd MSE (zbiór uczący)")
     plt.title("Błąd MSE w trakcie uczenia")
@@ -41,8 +32,8 @@ def plot_mse_test_errors(train_error_files, test_error_files, raw_error_referenc
         df = pd.read_csv(file)
         label = os.path.basename(file).replace("errors_", "").replace(".csv", "")
         plt.plot(df["epoch"], df["test_error"], label=label)
-    _, max_val = get_common_ylim(train_error_files, test_error_files)
-    plt.ylim(max_val * 0.5, max_val)
+    #_, max_val = get_common_ylim(train_error_files, test_error_files)
+    #plt.ylim(max_val * 0.5, max_val)
     plt.axhline(raw_error_reference, color='black', linestyle='--', label="Błąd zmierzony")
     plt.xlabel("Epoka")
     plt.ylabel("Błąd MSE (zbiór testowy)")
@@ -134,7 +125,7 @@ def main():
     # 4. Wykres punktowy najlepszego modelu
     plot_best_scatter(prediction_files, y_true, y_measured)
 
-    print("✅ Wykresy zapisane jako: mse_train.png, mse_test.png, error_cdf.png, scatter_best_model.png")
+    print(" Wykresy zapisane jako: mse_train.png, mse_test.png, error_cdf.png, scatter_best_model.png")
 
 
 if __name__ == "__main__":
