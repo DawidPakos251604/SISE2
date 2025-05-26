@@ -173,6 +173,9 @@ def main():
 
         key = f"{id_run}_{activation}_{i}"
 
+        mse = np.mean(error)
+        print(f"Egzemplarz {i + 1}: MSE = {mse:.4f}")
+
         # Zapis błędów treningowych i testowych
         df_errors = pd.DataFrame({
             "epoch": list(range(1, epochs + 1)),
