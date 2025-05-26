@@ -20,7 +20,7 @@ def load_data(data_dir):
     return full_data
 
 # Przygotowanie danych
-def prepare_datasets(train_paths, test_paths, normalization="minmax"):
+def prepare_datasets(train_paths, test_paths):
     def load_multiple(paths):
         dfs = [load_data(p) for p in paths]
         return pd.concat(dfs, ignore_index=True)
@@ -34,17 +34,8 @@ def prepare_datasets(train_paths, test_paths, normalization="minmax"):
     y_test = test_data.iloc[:, [2, 3]].values
     y_test_measured = test_data.iloc[:, [0, 1]].values
 
-    if normalization == "minmax":
-        scaler_x = MinMaxScaler()
-        scaler_y = MinMaxScaler()
-    elif normalization == "maxabs":
-        scaler_x = MaxAbsScaler()
-        scaler_y = MaxAbsScaler()
-    elif normalization == "standard":
-        scaler_x = StandardScaler()
-        scaler_y = StandardScaler()
-    else:
-        raise ValueError("Nieznana metoda normalizacji")
+    scaler_x = StandardScaler()
+    scaler_y = StandardScaler()
 
     scaler_x.fit(X_train)
     scaler_y.fit(y_train)
@@ -133,15 +124,6 @@ def main():
             pass
         print("Nieprawidłowa liczba epok.")
 
-    # Normalizacja
-    while True:
-        normalization = input("Rodzaj normalizacji (minmax/maxabs/standard) [domyślnie: standard]: ").strip().lower()
-        if normalization == "":
-            normalization = "standard"
-        if normalization in ["minmax", "maxabs", "standard"]:
-            break
-        print("Nieprawidłowy wybór normalizacji.")
-
     print("\n=== Rozpoczynam trening (3 egzemplarze sieci) ===")
 
     # Dane
@@ -149,7 +131,7 @@ def main():
     test_dirs = ["dane/f8/dyn", "dane/f10/dyn"]
 
     X_train, y_train, X_test, y_test_scaled, y_test_true, y_test_measured, scaler_y = prepare_datasets(
-        train_dirs, test_dirs, normalization
+        train_dirs, test_dirs
     )
 
     id_run = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -191,9 +173,6 @@ def main():
 
         # Dodatkowe opcjonalne logi
         print(f"Zapisano: wyniki/errors_{key}.csv oraz wyniki/predictions_{key}.csv")
-
-
-#błąd dla egzemplarza i porównać
 
 if __name__ == "__main__":
     main()
