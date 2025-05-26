@@ -6,9 +6,9 @@ import torch.optim as optim
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler, StandardScaler, MaxAbsScaler
+from datetime import datetime
 
 from model import MLP, ACTIVATIONS
-from plotting_utils import plot_mse, plot_cdf, scatter_plot
 
 # Ładowanie danych
 def load_data(data_dir):
@@ -152,12 +152,14 @@ def main():
         train_dirs, test_dirs, normalization
     )
 
-    best_model = None
-    lowest_mse = float("inf")
-    best_output = None
-    train_errors_dict = {}
-    test_errors_dict = {}
-    prediction_errors = {}
+    id_run = datetime.now().strftime("%Y%m%d_%H%M%S")
+    os.makedirs("wyniki", exist_ok=True)
+
+    # Zapis prawdziwych wartości testowych (w oryginalnej skali)
+    pd.DataFrame(y_test_true, columns=["x", "y"]).to_csv("wyniki/y_test_true.csv", index=False)
+
+    # Zapis wartości zmierzonych (w oryginalnej skali)
+    pd.DataFrame(y_test_measured, columns=["x", "y"]).to_csv("wyniki/y_test_measured.csv", index=False)
 
     for i in range(3):
         print(f"\nTrening egzemplarza {i + 1}...")
@@ -169,31 +171,23 @@ def main():
         predictions_denorm = scaler_y.inverse_transform(predictions)
         error = np.linalg.norm(predictions_denorm - y_test_true, axis=1)
 
-        key = f"{activation}_{i}"
-        train_errors_dict[key] = train_errors
-        test_errors_dict[key] = test_errors
-        prediction_errors[key] = error
+        key = f"{id_run}_{activation}_{i}"
 
-        mse = np.mean(error)
-        print(f"Egzemplarz {i + 1}: MSE = {mse:.4f}")
+        # Zapis błędów treningowych i testowych
+        df_errors = pd.DataFrame({
+            "epoch": list(range(1, epochs + 1)),
+            "train_error": train_errors,
+            "test_error": test_errors
+        })
+        df_errors.to_csv(f"wyniki/errors_{key}.csv", index=False)
 
-        if mse < lowest_mse:
-            lowest_mse = mse
-            best_model = model
-            best_output = predictions_denorm
+        # Zapis predykcji i błędów
+        df_pred = pd.DataFrame(predictions_denorm, columns=["x", "y"])
+        df_pred["error"] = error
+        df_pred.to_csv(f"wyniki/predictions_{key}.csv", index=False)
 
-    print(f"\n✅ Najlepszy wynik MSE: {lowest_mse:.4f}")
-    print("Tworzę wykresy i zapisuję dane...")
-
-    raw_error = np.linalg.norm(y_test_measured - y_test_true, axis=1)
-    plot_mse(train_errors_dict, test_errors_dict)
-    plot_cdf(prediction_errors, raw_error)
-    scatter_plot(y_test_true, y_test_measured, best_output)
-
-    out_filename = f"best_prediction_{activation}.csv"
-    pd.DataFrame(best_output, columns=["x", "y"]).to_csv(out_filename, index=False)
-    print(f"Wynik zapisany do pliku: {out_filename}")
-
+        # Dodatkowe opcjonalne logi
+        print(f"Zapisano: wyniki/errors_{key}.csv oraz wyniki/predictions_{key}.csv")
 
 if __name__ == "__main__":
     main()
