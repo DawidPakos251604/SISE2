@@ -4,18 +4,36 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.preprocessing import MinMaxScaler, StandardScaler, MaxAbsScaler
+from sklearn.preprocessing import StandardScaler
 
 
+def extract_activation(file_name):
+    """Wydobywa nazwę funkcji aktywacyjnej z nazwy pliku."""
+    base = os.path.basename(file_name)
+    for act in ["sigmoid", "tanh", "relu"]:
+        if act in base:
+            return act
+    return "unknown"
 
-def plot_mse_errors(train_error_files, test_error_files):
+
+def get_best_files_per_activation(prediction_files):
+    """Zwraca najlepszy plik predykcji (najniższy MSE) dla każdej funkcji aktywacyjnej."""
+    best_files = {}
+    for file in prediction_files:
+        activation = extract_activation(file)
+        df = pd.read_csv(file)
+        mse = np.mean(df["error"])
+        if activation not in best_files or mse < best_files[activation][1]:
+            best_files[activation] = (file, mse)
+    return [val[0] for val in best_files.values()]
+
+
+def plot_mse_errors(train_error_files):
     plt.figure(figsize=(10, 6))
     for file in train_error_files:
         df = pd.read_csv(file)
         label = os.path.basename(file).replace("errors_", "").replace(".csv", "")
         plt.plot(df["epoch"], df["train_error"], label=label)
-    #_, max_val = get_common_ylim(train_error_files, test_error_files)
-    #plt.ylim(max_val * 0.5, max_val)  # Obcięcie górnych wartości
     plt.xlabel("Epoka")
     plt.ylabel("Błąd MSE (zbiór uczący)")
     plt.title("Błąd MSE w trakcie uczenia")
@@ -26,14 +44,12 @@ def plot_mse_errors(train_error_files, test_error_files):
     plt.close()
 
 
-def plot_mse_test_errors(train_error_files, test_error_files, raw_error_reference):
+def plot_mse_test_errors(test_error_files, raw_error_reference):
     plt.figure(figsize=(10, 6))
     for file in test_error_files:
         df = pd.read_csv(file)
         label = os.path.basename(file).replace("errors_", "").replace(".csv", "")
         plt.plot(df["epoch"], df["test_error"], label=label)
-    #_, max_val = get_common_ylim(train_error_files, test_error_files)
-    #plt.ylim(max_val * 0.5, max_val)
     plt.axhline(raw_error_reference, color='black', linestyle='--', label="Błąd zmierzony")
     plt.xlabel("Epoka")
     plt.ylabel("Błąd MSE (zbiór testowy)")
@@ -54,7 +70,6 @@ def plot_error_cdfs(prediction_files, raw_errors):
         label = os.path.basename(file).replace("predictions_", "").replace(".csv", "")
         plt.plot(sorted_errors, cdf, label=label)
 
-    # Dystrybuanta błędu dla pomiarów dynamicznych
     sorted_raw = np.sort(raw_errors)
     cdf_raw = np.arange(1, len(sorted_raw) + 1) / len(sorted_raw)
     plt.plot(sorted_raw, cdf_raw, label="pomiar", linestyle='--', color='black')
@@ -78,7 +93,6 @@ def plot_best_scatter(prediction_files, y_true, y_measured):
         if mse < best_mse:
             best_mse = mse
             best_file = file
-
     df_best = pd.read_csv(best_file)
     label = os.path.basename(best_file).replace("predictions_", "").replace(".csv", "")
 
@@ -97,35 +111,38 @@ def plot_best_scatter(prediction_files, y_true, y_measured):
 
 
 def main():
-    train_error_files = sorted(glob.glob("wyniki/errors_*.csv"))
-    test_error_files = train_error_files  # Te same pliki zawierają też test_error
-    prediction_files = sorted(glob.glob("wyniki/predictions_*.csv"))
+    all_prediction_files = sorted(glob.glob("wyniki/predictions_*.csv"))
+    best_prediction_files = get_best_files_per_activation(all_prediction_files)
 
-    # Odczyt rzeczywistych i zmierzonych danych do scattera i referencji
+    # Odpowiadające pliki błędów
+    train_error_files = [
+        os.path.join("wyniki", "errors_" + os.path.basename(f).replace("predictions_", ""))
+        for f in best_prediction_files
+    ]
+    test_error_files = train_error_files
+
+    # Odczyt danych rzeczywistych i zmierzonych
     y_true = pd.read_csv("wyniki/y_test_true.csv").to_numpy()
     y_measured = pd.read_csv("wyniki/y_test_measured.csv").to_numpy()
 
-    # Skalowanie zmierzonych danych do tej samej skali co dane wyjściowe (przeskalowane wcześniej)
+    # Skalowanie do odniesienia błędu
     scaler_y = StandardScaler()
-    scaler_y.fit(y_true)  # zakładamy standardową normalizację
+    scaler_y.fit(y_true)
 
     y_measured_scaled = scaler_y.transform(y_measured)
     raw_error_reference = np.mean(np.square(y_measured_scaled - scaler_y.transform(y_true)))
 
-    # 1. Wykres MSE - zbiór uczący
-    plot_mse_errors(train_error_files, test_error_files)
+    # Wykresy
+    plot_mse_errors(train_error_files)
+    plot_mse_test_errors(test_error_files, raw_error_reference)
 
-    # 2. Wykres MSE - zbiór testowy
-    plot_mse_test_errors(train_error_files, test_error_files, raw_error_reference)
-
-    # 3. Dystrybuanty błędów
     all_errors = np.linalg.norm(y_measured - y_true, axis=1)
-    plot_error_cdfs(prediction_files, all_errors)
+    plot_error_cdfs(best_prediction_files, all_errors)
 
-    # 4. Wykres punktowy najlepszego modelu
-    plot_best_scatter(prediction_files, y_true, y_measured)
+    # Wykres punktowy najlepszego modelu (ze wszystkich)
+    plot_best_scatter(all_prediction_files, y_true, y_measured)
 
-    print(" Wykresy zapisane jako: mse_train.png, mse_test.png, error_cdf.png, scatter_best_model.png")
+    print("Wykresy zapisane jako: mse_train.png, mse_test.png, error_cdf.png, scatter_best_model.png")
 
 
 if __name__ == "__main__":
