@@ -92,7 +92,7 @@ def plot_error_cdfs(prediction_files, raw_errors):
 
     sorted_raw = np.sort(raw_errors)
     cdf_raw = np.arange(1, len(sorted_raw) + 1) / len(sorted_raw)
-    plt.plot(sorted_raw, cdf_raw, label="pomiar", linestyle='--', color='black')
+    plt.plot(sorted_raw, cdf_raw, label="Pomiar", linestyle='--', color='black')
 
     plt.xlabel("Błąd")
     plt.ylabel("Dystrybuanta")
@@ -110,9 +110,9 @@ def plot_best_scatter(prediction_file, y_true, y_measured, label):
     df_best = pd.read_csv(prediction_file)
 
     plt.figure(figsize=(8, 8))
-    plt.scatter(y_measured[:, 0], y_measured[:, 1], s=10, c='#ead36e', label="zmierzone", zorder=1)
-    plt.scatter(df_best["x"], df_best["y"], s=10, c='#57c547', label=f"skorygowane ({label})", zorder=2)
-    plt.scatter(y_true[:, 0], y_true[:, 1], s=10, c='#005589', label="rzeczywiste", zorder=3)
+    plt.scatter(y_measured[:, 0], y_measured[:, 1], s=10, c='#ead36e', label="Zmierzone", zorder=1)
+    plt.scatter(df_best["x"], df_best["y"], s=10, c='#40ac30', label=f"Skorygowane ({label})", zorder=2)
+    plt.scatter(y_true[:, 0], y_true[:, 1], s=10, c='#005589', label="Rzeczywiste", zorder=3)
     plt.xlabel("x")
     plt.ylabel("y")
     plt.legend()
