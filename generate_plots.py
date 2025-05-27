@@ -8,7 +8,6 @@ from sklearn.preprocessing import StandardScaler
 
 
 def extract_activation(file_name):
-    """Wydobywa nazwę funkcji aktywacyjnej z nazwy pliku."""
     base = os.path.basename(file_name)
     for act in ["sigmoid", "tanh", "relu"]:
         if act in base:
@@ -35,7 +34,7 @@ def get_best_files_by_test_error_per_activation(error_files_dir):
         ) for f in best_error_files
     ]
 
-    # Wyznaczenie najlepszego ogólnie (najmniejszy test_error na końcu)
+    # Najlepszy ogólnie
     best_overall = min(best_files.items(), key=lambda x: x[1][1])
     best_activation = best_overall[0]
     best_error_file = best_overall[1][0]
@@ -44,7 +43,7 @@ def get_best_files_by_test_error_per_activation(error_files_dir):
         "predictions_" + os.path.basename(best_error_file).replace("errors_", "")
     )
 
-    return best_prediction_files, best_error_files, best_prediction_file, best_activation
+    return best_prediction_files, best_error_files, best_prediction_file, best_activation, best_files
 
 
 def plot_mse_errors(train_error_files):
@@ -125,35 +124,32 @@ def plot_best_scatter(prediction_file, y_true, y_measured, label):
 
 
 def main():
-    # 1. Pobranie najlepszych plików predictions oraz odpowiadających im errorów
-    best_prediction_files, best_error_files, best_prediction_file, best_activation = \
+    best_prediction_files, best_error_files, best_prediction_file, best_activation, best_files = \
         get_best_files_by_test_error_per_activation("wyniki")
 
-    # 2. Dane rzeczywiste i zmierzone (do wykresu testowego i scattera)
     y_true = pd.read_csv("wyniki/y_test_true.csv").to_numpy()
     y_measured = pd.read_csv("wyniki/y_test_measured.csv").to_numpy()
 
-    # 3. Skalowanie danych zmierzonych zgodnie ze skalą danych rzeczywistych
     scaler_y = StandardScaler()
     scaler_y.fit(y_true)
     y_measured_scaled = scaler_y.transform(y_measured)
-
-    # 4. Wyliczenie odniesienia dla błędu testowego (linia odniesienia)
     raw_error_reference = np.mean(np.square(y_measured_scaled - scaler_y.transform(y_true)))
 
-    # 5. Wykresy: mse_train + mse_test
     plot_mse_errors(best_error_files)
     plot_mse_test_errors(best_error_files, raw_error_reference)
 
-    # 6. Wykres dystrybuant błędów
     all_errors = np.linalg.norm(y_measured - y_true, axis=1)
     plot_error_cdfs(best_prediction_files, all_errors)
 
-    # 7. Wykres punktowy najlepszego modelu
     plot_best_scatter(best_prediction_file, y_true, y_measured, best_activation)
 
-    print("Wykresy zapisane jako: mse_train.png, mse_test.png, error_cdf.png, scatter_best_model.png")
-    print(f"Najlepszy wariant sieci: {os.path.basename(best_prediction_file)}")
+    print("Wykresy zapisane jako: mse_train.png, mse_test.png, error_cdf.png, scatter_best_model.png\n")
+
+    print("Najlepsze modele dla każdej funkcji aktywacyjnej:")
+    for activation, (file_path, test_error) in best_files.items():
+        print(f"- {activation}: {os.path.basename(file_path)} (test_error = {test_error:.4f})")
+
+    print(f"\n Najlepszy ogólny model: {os.path.basename(best_prediction_file)} (aktywacja: {best_activation})")
 
 
 if __name__ == "__main__":
