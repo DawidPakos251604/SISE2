@@ -16,16 +16,35 @@ def extract_activation(file_name):
     return "unknown"
 
 
-def get_best_files_per_activation(prediction_files):
-    """Zwraca najlepszy plik predykcji (najniższy MSE) dla każdej funkcji aktywacyjnej."""
+def get_best_files_by_test_error_per_activation(error_files_dir):
     best_files = {}
-    for file in prediction_files:
+    error_files = sorted(glob.glob(os.path.join(error_files_dir, "errors_*.csv")))
+
+    for file in error_files:
         activation = extract_activation(file)
         df = pd.read_csv(file)
-        mse = np.mean(df["error"])
-        if activation not in best_files or mse < best_files[activation][1]:
-            best_files[activation] = (file, mse)
-    return [val[0] for val in best_files.values()]
+        last_test_error = df["test_error"].iloc[-1]
+        if activation not in best_files or last_test_error < best_files[activation][1]:
+            best_files[activation] = (file, last_test_error)
+
+    best_error_files = [v[0] for v in best_files.values()]
+    best_prediction_files = [
+        os.path.join(
+            error_files_dir,
+            "predictions_" + os.path.basename(f).replace("errors_", "")
+        ) for f in best_error_files
+    ]
+
+    # Wyznaczenie najlepszego ogólnie (najmniejszy test_error na końcu)
+    best_overall = min(best_files.items(), key=lambda x: x[1][1])
+    best_activation = best_overall[0]
+    best_error_file = best_overall[1][0]
+    best_prediction_file = os.path.join(
+        error_files_dir,
+        "predictions_" + os.path.basename(best_error_file).replace("errors_", "")
+    )
+
+    return best_prediction_files, best_error_files, best_prediction_file, best_activation
 
 
 def plot_mse_errors(train_error_files):
@@ -88,22 +107,13 @@ def plot_error_cdfs(prediction_files, raw_errors):
     plt.close()
 
 
-def plot_best_scatter(prediction_files, y_true, y_measured):
-    best_file = None
-    best_mse = float('inf')
-    for file in prediction_files:
-        df = pd.read_csv(file)
-        mse = np.mean(df["error"])
-        if mse < best_mse:
-            best_mse = mse
-            best_file = file
-    df_best = pd.read_csv(best_file)
-    label = extract_activation(file)
+def plot_best_scatter(prediction_file, y_true, y_measured, label):
+    df_best = pd.read_csv(prediction_file)
 
     plt.figure(figsize=(8, 8))
-    plt.scatter(y_measured[:, 0], y_measured[:, 1], s=10, c='#ead36e', label="zmierzone")
-    plt.scatter(df_best["x"], df_best["y"], s=10, c='#57c547', label=f"skorygowane ({label})")
-    plt.scatter(y_true[:, 0], y_true[:, 1], s=10, c='#005589', label="rzeczywiste")
+    plt.scatter(y_measured[:, 0], y_measured[:, 1], s=10, c='#ead36e', label="zmierzone", zorder=1)
+    plt.scatter(df_best["x"], df_best["y"], s=10, c='#57c547', label=f"skorygowane ({label})", zorder=2)
+    plt.scatter(y_true[:, 0], y_true[:, 1], s=10, c='#005589', label="rzeczywiste", zorder=3)
     plt.xlabel("x")
     plt.ylabel("y")
     plt.title("Porównanie: rzeczywiste vs. zmierzone vs. skorygowane")
@@ -115,38 +125,35 @@ def plot_best_scatter(prediction_files, y_true, y_measured):
 
 
 def main():
-    all_prediction_files = sorted(glob.glob("wyniki/predictions_*.csv"))
-    best_prediction_files = get_best_files_per_activation(all_prediction_files)
+    # 1. Pobranie najlepszych plików predictions oraz odpowiadających im errorów
+    best_prediction_files, best_error_files, best_prediction_file, best_activation = \
+        get_best_files_by_test_error_per_activation("wyniki")
 
-    # Odpowiadające pliki błędów
-    train_error_files = [
-        os.path.join("wyniki", "errors_" + os.path.basename(f).replace("predictions_", ""))
-        for f in best_prediction_files
-    ]
-    test_error_files = train_error_files
-
-    # Odczyt danych rzeczywistych i zmierzonych
+    # 2. Dane rzeczywiste i zmierzone (do wykresu testowego i scattera)
     y_true = pd.read_csv("wyniki/y_test_true.csv").to_numpy()
     y_measured = pd.read_csv("wyniki/y_test_measured.csv").to_numpy()
 
-    # Skalowanie do odniesienia błędu
+    # 3. Skalowanie danych zmierzonych zgodnie ze skalą danych rzeczywistych
     scaler_y = StandardScaler()
     scaler_y.fit(y_true)
-
     y_measured_scaled = scaler_y.transform(y_measured)
+
+    # 4. Wyliczenie odniesienia dla błędu testowego (linia odniesienia)
     raw_error_reference = np.mean(np.square(y_measured_scaled - scaler_y.transform(y_true)))
 
-    # Wykresy
-    plot_mse_errors(train_error_files)
-    plot_mse_test_errors(test_error_files, raw_error_reference)
+    # 5. Wykresy: mse_train + mse_test
+    plot_mse_errors(best_error_files)
+    plot_mse_test_errors(best_error_files, raw_error_reference)
 
+    # 6. Wykres dystrybuant błędów
     all_errors = np.linalg.norm(y_measured - y_true, axis=1)
     plot_error_cdfs(best_prediction_files, all_errors)
 
-    # Wykres punktowy najlepszego modelu (ze wszystkich)
-    plot_best_scatter(all_prediction_files, y_true, y_measured)
+    # 7. Wykres punktowy najlepszego modelu
+    plot_best_scatter(best_prediction_file, y_true, y_measured, best_activation)
 
     print("Wykresy zapisane jako: mse_train.png, mse_test.png, error_cdf.png, scatter_best_model.png")
+    print(f"Najlepszy wariant sieci: {os.path.basename(best_prediction_file)}")
 
 
 if __name__ == "__main__":
