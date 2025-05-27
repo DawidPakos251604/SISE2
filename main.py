@@ -152,11 +152,7 @@ def main():
         predictions = model(torch.FloatTensor(X_test)).detach().numpy()
         predictions_denorm = scaler_y.inverse_transform(predictions)
         error = np.linalg.norm(predictions_denorm - y_test_true, axis=1)
-
         key = f"{id_run}_{activation}_{i}"
-
-        mse = np.mean(error)
-        print(f"Egzemplarz {i + 1}: MSE = {mse:.4f}")
 
         # Zapis błędów treningowych i testowych
         df_errors = pd.DataFrame({
