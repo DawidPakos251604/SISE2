@@ -95,7 +95,7 @@ def plot_error_cdfs(prediction_files, raw_errors):
     plt.plot(sorted_raw, cdf_raw, label="Pomiar", linestyle='--', color='black')
 
     plt.xlabel("Błąd")
-    plt.ylabel("Dystrybuanta")
+    plt.ylabel("Dystrybuanta (CDF)")
     plt.title("Dystrybuanty błędów")
     plt.legend()
     plt.grid(True)
