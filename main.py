@@ -80,6 +80,8 @@ def train_model(activation_name, hidden_neurons, learning_rate, epochs, X_train,
 
         train_errors.append(train_loss)
         test_errors.append(test_loss)
+        print("Epoka: {epoch}".format(epoch=epoch))
+        print("MSE: {loss}".format(loss=train_loss))
 
     return model, train_errors, test_errors
 

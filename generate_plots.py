@@ -101,9 +101,9 @@ def plot_best_scatter(prediction_files, y_true, y_measured):
     label = extract_activation(file)
 
     plt.figure(figsize=(8, 8))
-    plt.scatter(y_measured[:, 0], y_measured[:, 1], s=10, c='gray', label="zmierzone")
-    plt.scatter(df_best["x"], df_best["y"], s=10, c='orange', label=f"{label}")
-    plt.scatter(y_true[:, 0], y_true[:, 1], s=10, c='blue', label="rzeczywiste")
+    plt.scatter(y_measured[:, 0], y_measured[:, 1], s=10, c='#ead36e', label="zmierzone")
+    plt.scatter(df_best["x"], df_best["y"], s=10, c='#57c547', label=f"{label}")
+    plt.scatter(y_true[:, 0], y_true[:, 1], s=10, c='#005589', label="rzeczywiste")
     plt.xlabel("x")
     plt.ylabel("y")
     plt.title("Porównanie: rzeczywiste vs. zmierzone vs. skorygowane")
